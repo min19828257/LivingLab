@@ -1,7 +1,6 @@
 from getdata_firebase import get_data
 from getdata_firebase import make_DB
 
-
 def set_data(data):
 
     rssi_list =[x for x in range(len(data))]
@@ -85,6 +84,7 @@ def Setting(ip,port):
     print(str(addr),'에서 접속이 확인되었습니다.')
 
     data = connectionSock.recv(1024).decode()
+    data = data.split(",")
 
     return data # 모바일이 측정한 신호세기값 (3개)
 
@@ -92,21 +92,29 @@ def Setting(ip,port):
 def Weight(Rssi):
     Rssi_result = []
     Rssi_Weight = [1/7,1/7,1/7,1/7,3/7]
-    for i in range(len(Rssi)):
-        Rssi_result.append(Rssi[i] * Rssi_Weight[i])
+    for i in ((Rssi)):
+        for j in range(len(i)):
+            Rssi_result.append(round(float(i[j]) * Rssi_Weight[j],3))
     return Rssi_result
 
 if __name__ == "__main__":    
-    data = get_data() #data가져오기
+    data = get_data() # 오프라인 data 가져오기
     rssi_data, location_data = make_DB(data) # 파이어베이스로부터 받아온 데이터를 신호세기와 위치좌표DB로 만들기
 
+    cnt = 0
     while(1):    
         data = set_data(rssi_data)  # 신호세기를 구현을 위해 2차원 배열로 만들기
-        #mobile_data = Setting(ip,prot) # 소켓으로 모바일 데이터 가져오기
-        #mobile_data = Weight(mobile_data) #필터
+        
+        rssi_lists = []
+        for i in range(5):
+            mobile_data = Setting(ip,port) # 소켓으로 모바일 데이터 가져오기
+            rssi_lists.append(mobile_data)
+        mobile_data = Weight(rssi_lists) #필     
         
         mobile_data,subData,subLocation = set_Subdata(mobile_data ,data, location_data)    #후보 데이터 선정(모바일 측정데이터,신호세기, 위치좌표)
 
         similar_number=check_similar(mobile_data,subData,subLocation) #유사도 계산하기
         X,Y = print_location(similar_number,subLocation) #유사도결과 기반으로 X,Y출
         print("x,y : ", X, Y)
+
+        cnt+=1
